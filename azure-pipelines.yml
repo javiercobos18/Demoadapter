@@ -1,0 +1,25 @@
+trigger:
+  - '*'
+
+variables:
+  -  ${{ if or(startsWith(variables['Build.SourceBranch'], 'refs/heads/feature/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/develop')) }}:
+      - group: java-maven-dev
+
+  - ${{ if startsWith(variables['Build.SourceBranch'], 'refs/heads/release') }}:
+      - group: java-maven-test
+
+  -  ${{ if or(startsWith(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/master')) }}:
+      - group: java-maven-prod
+
+  - name: SONAR_ROJECT_ID
+    value: $(Build.Repository.Name)
+
+resources:
+  repositories:
+    - repository: template-ibm-java-maven
+      type: git
+      name: BCR_DEVOPS/template-ibm-java-maven
+      ref: refs/heads/main
+
+extends:
+  template: init.yml@template-ibm-java-maven

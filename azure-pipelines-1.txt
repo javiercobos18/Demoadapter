@@ -1,0 +1,92 @@
+trigger:
+  - main
+
+jobs:
+  - job: Build
+    displayName: "Build app adapter"
+    pool:
+      name: poollinux
+      demands:
+        - agent.name -equals abad45linux
+    container:
+      image: bcrdevopsregistry:443/ibm-mf-cli-babel:V2.0.0
+
+    steps:
+    - task: CmdLine@2
+      displayName: 'test run maven'
+      inputs:
+        script: |
+          echo 'ejecutando comando mvn'
+          mvn clean install
+
+    - task: CmdLine@2
+      displayName: 'Add Server ibm mf console'
+      inputs:
+        script: 'export PATH=/root/.nvm/versions/node/v14.0.0/bin:$PATH 
+                  && 
+                  mfpdev server add server-ppl -url http://172.26.33.57:12001 -login BCR_TFS_BUILD -password a123456B -contextroot mfpadmin -s'
+
+    - task: CmdLine@2
+      displayName: 'Get Info mfpdev server created'
+      inputs:
+        script: 'export PATH=/root/.nvm/versions/node/v14.0.0/bin:$PATH && mfpdev server info'
+
+    - task: Bash@3
+      displayName: 'Building app adapter'
+      inputs:
+        targetType: 'inline'
+        script: 'export PATH=/root/.nvm/versions/node/v14.0.0/bin:$PATH && mfpdev adapter build'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publishing app adapter'
+      inputs:
+        pathToPublish: "$(System.DefaultWorkingDirectory)/target"
+        artifactName: target
+
+    - task: CmdLine@2
+      displayName: 'Deploying app Adapter'
+      inputs:
+        script: 'export PATH=/root/.nvm/versions/node/v14.0.0/bin:$PATH && mfpdev adapter deploy'
+
+===============================================================================================
+buildflutter : kktkjeori53ctgarbmzwa252qvk5xi5zog6zuqt4xbdxyxngi23q
+password "$System.env.buildflutter"
+
+# replace "yourPAT" with ":PatStringFromWebUI"
+Token: azgit:mvbkgesw7wo24vu5kynqhzqwmn57dljinbamwkr5y6mcoax56pgq
+
+MY_PAT=mvbkgesw7wo24vu5kynqhzqwmn57dljinbamwkr5y6mcoax56pgq
+B64_PAT=$(printf "%s"":$MY_PAT" | base64)
+git -c http.extraHeader="Authorization: Basic ${B64_PAT}" push https://bcrtfs/tfs/BCRCollection/TPBCRComercialApp/_git/adp-demo-java-maven
+
+mfpdev server add   server-bcr     -url http://172.26.33.57:12001 -login BCR_TFS_BUILD   -password a123456B        -contextroot mfpadmin -s
+mfpdev server add   $(SERVER_NAME) -url $(IP_SERVER)              -login $(USERNAME_IBM) -password $(PASSWORD_IBM) -contextroot mfpadmin -s
+# mfpdeployer
+# mfpadmin
+===============================================================================================
+
+git push https://$MY_PAT@bcrtfs/tfs/BCRCollection/TPBCRComercialApp/_git/adp-demo-java-maven
+git push https://$B64_PAT@bcrtfs/tfs/BCRCollection/TPBCRComercialApp/_git/adp-demo-java-maven
+git -c http.extraHeader="Authorization: Basic ${B64_PAT}" clone https://bcrtfs/tfs/BCRCollection/TPBCRComercialApp/_git/adp-demo-java-maven
+
+export PATH=/root/.nvm/versions/node/v14.0.0/bin:$PATH
+===============================================================================================
+dependsOn:
+      - build
+      - analyze
+      - publish
+      - ApproveProd
+    condition: and(succeeded('build'), eq(variables['Build.SourceBranch'], 'refs/heads/main'), 
+                   succeeded('analyze'), eq(variables['Build.SourceBranch'], 'refs/heads/main'), 
+                   succeeded('publish'), eq(variables['Build.SourceBranch'], 'refs/heads/main')
+                   succeeded('ApproveProd'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+                   
+                   
+[error]We stopped hearing from agent abad45linux. 
+Verify the agent machine is running and has a healthy network connection. 
+Anything that terminates an agent process, starves it for CPU, 
+or blocks its network access can cause this error. 
+For more information, see: https://go.microsoft.com/fwlink/?linkid=846610
+
+'refs/heads/main','refs/heads/master','refs/heads/develop','refs/heads/feature/*','refs/heads/release/*'
+
